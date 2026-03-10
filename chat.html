@@ -80,7 +80,7 @@
 
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker
-          .register("/firebase-messaging-sw.js")
+          .register("./firebase-messaging-sw.js")
           .then((reg) => console.log("Service worker registered"))
           .catch((err) => console.log(err));
       }
@@ -332,7 +332,7 @@
       const messaging = firebase.messaging();
 
       navigator.serviceWorker
-        .register("/Anonymous-Chat/firebase-messaging-sw.js")
+        .register("./firebase-messaging-sw.js")
         .then(function (registration) {
           console.log("Service Worker registered");
 
