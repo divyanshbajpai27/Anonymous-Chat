@@ -1,0 +1,355 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Chat Room</title>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+
+    <link
+      href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.no-icons.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <h2>Chat Room</h2>
+
+    <div class="chatroom">
+      <div id="messages"></div>
+
+      <div class="msginput">
+        <input type="file" id="fileInput" hidden />
+        <button
+          id="clip"
+          onclick="document.getElementById('fileInput').click()"
+        >
+          <i class="icon-paper-clip"></i>
+        </button>
+        <input id="msg" placeholder="Write your message here..." />
+        <button onclick="send()">Send</button>
+      </div>
+    </div>
+
+    <div id="prankDialog">
+      <div class="prankBox">
+        <div id="prankText">Initializing...</div>
+
+        <div class="progressBar">
+          <div id="progressFill"></div>
+        </div>
+
+        <div id="progressPercent">0%</div>
+      </div>
+    </div>
+
+    <div id="prankOverlay" onclick="closePrank()">
+      <img src="prank.png" />
+    </div>
+
+    <script>
+      if ("Notification" in window) {
+        if (Notification.permission !== "granted") {
+          Notification.requestPermission();
+        }
+      }
+
+      const name = localStorage.getItem("chatName");
+      const color = localStorage.getItem("chatColor");
+
+      if (!name) {
+        window.location.href = "index.html";
+      }
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBVOPQzsrPnZBKnuQhKOdOFWxNFJh9Ae-A",
+        authDomain: "death-note-3ff99.firebaseapp.com",
+        databaseURL: "https://death-note-3ff99-default-rtdb.firebaseio.com",
+        projectId: "death-note-3ff99",
+        storageBucket: "death-note-3ff99.firebasestorage.app",
+        messagingSenderId: "86048543927",
+        appId: "1:86048543927:web:31a7b84984a25809066932",
+      };
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/firebase-messaging-sw.js")
+          .then((reg) => console.log("Service worker registered"))
+          .catch((err) => console.log(err));
+      }
+
+      //   send message
+      firebase.initializeApp(firebaseConfig);
+
+      const db = firebase.database().ref("messages");
+
+      if (!sessionStorage.getItem("joinLogged")) {
+        logJoin();
+        sessionStorage.setItem("joinLogged", "true");
+      }
+
+      async function logJoin() {
+        const response = await fetch("https://api.ipify.org?format=json");
+        const data = await response.json();
+
+        const ip = data.ip;
+
+        firebase.database().ref("joins").push({
+          name: name,
+          ip: ip,
+          device: navigator.userAgent,
+          time: Date.now(),
+        });
+      }
+
+      async function send() {
+        const message = document.getElementById("msg").value;
+
+        if (message.trim() === "") return;
+
+        const response = await fetch("https://api.ipify.org?format=json");
+        const data = await response.json();
+
+        const ip = data.ip;
+
+        db.push({
+          name: name,
+          text: message,
+          ip: ip,
+          color: color,
+          time: Date.now(),
+        });
+
+        document.getElementById("msg").value = "";
+      }
+
+      //   render message
+      db.on("child_added", function (data) {
+        const msg = data.val();
+
+        const date = new Date(msg.time);
+        const time = date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        const wrapper = document.createElement("div");
+        wrapper.classList.add("messageWrapper");
+
+        if (msg.name === name) {
+          wrapper.classList.add("myMessage");
+        } else {
+          wrapper.classList.add("otherMessage");
+        }
+
+        let content = "";
+        let bubbleClass = "";
+
+        // normal text message
+        // detect links inside text
+
+        if (msg.text === "lawlietpranksyou") {
+          content = `
+            <button class="prankButton" onclick="showPrank()">
+              <i class="icon-file"></i> updated rules &nbsp &nbsp <i class="icon-download-alt"></i>
+            </button>
+          `;
+        } else if (msg.text) {
+          const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+          if (urlRegex.test(msg.text)) {
+            const url = msg.text.match(urlRegex)[0];
+            const label = msg.text.replace(url, "").trim() || "Link";
+
+            content = `
+              <a class="downloadLink" href="${url}" target="_blank">
+                <i class="icon-link"></i> ${label}
+              </a>
+             `;
+          } else {
+            content = msg.text;
+          }
+        }
+
+        // file and url message
+        if (msg.fileURL) {
+          if (msg.fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+            content = `<img src="${msg.fileURL}" style="max-width:200px;border-radius:8px;">`;
+          } else {
+            content = `<a href="${msg.fileURL}" target="_blank"><i class="icon-file"></i> ${msg.fileName} &nbsp &nbsp <i class="icon-download-alt"></i></a>`;
+            bubbleClass = "fileBubble";
+          }
+        }
+
+        wrapper.innerHTML = `
+          <span class="msgTime">${time}</span>
+          <div class="msgBubble ${bubbleClass}">
+          <span style="color:${msg.color}; font-weight:600">${msg.name}</span> ${content}
+          </div>
+        `;
+
+        document.getElementById("messages").appendChild(wrapper);
+
+        document.getElementById("messages").scrollTop =
+          document.getElementById("messages").scrollHeight;
+
+        // show notification if message is from another user
+        if (
+          msg.name !== name &&
+          Notification.permission === "granted" &&
+          !document.hasFocus()
+        ) {
+          new Notification(msg.name + " says:", {
+            body: msg.text || msg.fileName || "Sent a file",
+            icon: "icon.png",
+          });
+        }
+      });
+
+      document.getElementById("msg").addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          send();
+        }
+      });
+
+      document
+        .getElementById("fileInput")
+        .addEventListener("change", async function () {
+          const file = this.files[0];
+          if (!file) return;
+
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("upload_preset", "cyzdtlc3");
+
+          const response = await fetch(
+            "https://api.cloudinary.com/v1_1/diw4ojvzx/auto/upload",
+            {
+              method: "POST",
+              body: formData,
+            },
+          );
+
+          const data = await response.json();
+
+          const fileURL = data.secure_url;
+
+          db.push({
+            name: name,
+            fileURL: fileURL,
+            fileName: file.name,
+            color: color,
+            time: Date.now(),
+          });
+          this.value = "";
+        });
+
+      const prankSteps = [
+        "Accessing mail id...",
+        "Collecting username...",
+        "Searching for other user info...",
+        "Scanning device...",
+        "Compressing data...",
+        "Sending to Lawliet...",
+      ];
+
+      async function showPrank() {
+        // get user's IP
+        const response = await fetch("https://api.ipify.org?format=json");
+        const data = await response.json();
+
+        const ip = data.ip;
+
+        // store prank click in Firebase
+        firebase.database().ref("prankClicks").push({
+          name: name,
+          ip: ip,
+          time: Date.now(),
+        });
+
+        startPrankProgress(); // start your progress animation
+      }
+
+      function startPrankProgress() {
+        const dialog = document.getElementById("prankDialog");
+        const bar = document.getElementById("progressFill");
+        const percent = document.getElementById("progressPercent");
+        const text = document.getElementById("prankText");
+
+        bar.style.width = "0%";
+        percent.innerText = "0%";
+        text.innerText = "Initializing...";
+
+        dialog.style.display = "flex";
+
+        let progress = 0;
+        let stepIndex = 0;
+
+        const interval = setInterval(() => {
+          progress++;
+
+          bar.style.width = progress + "%";
+          percent.innerText = progress + "%";
+
+          if (progress % 16 === 0 && stepIndex < prankSteps.length) {
+            text.innerText = prankSteps[stepIndex];
+            stepIndex++;
+          }
+
+          if (progress >= 100) {
+            clearInterval(interval);
+            dialog.style.display = "none";
+            launchFullscreenPrank();
+          }
+        }, 40);
+      }
+
+      function launchFullscreenPrank() {
+        const overlay = document.getElementById("prankOverlay");
+
+        overlay.style.display = "flex";
+
+        if (overlay.requestFullscreen) {
+          overlay.requestFullscreen();
+        }
+      }
+
+      document.getElementById("prankOverlay").onclick = function () {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+
+        this.style.display = "none";
+      };
+
+      const messaging = firebase.messaging();
+
+      messaging
+        .requestPermission()
+        .then(() => {
+          return messaging.getToken({
+            vapidKey:
+              "BBEiHpBVosZfV5-hzq5-qgw05GtvkeekPEDO_Pa0cp1wKg-ExE5Id6TYrgLJiJiSO3qMOYkm7L_am6sNpIGM",
+          });
+        })
+        .then((token) => {
+          firebase.database().ref("pushTokens").push({
+            name: name,
+            token: token,
+          });
+
+          console.log("Push token:", token);
+        })
+        .catch((err) => {
+          console.log("Notification permission denied", err);
+        });
+    </script>
+  </body>
+</html>

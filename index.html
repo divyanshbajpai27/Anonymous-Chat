@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Join Chat</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="content">
+      <h2>Welcome to Chat</h2>
+
+      <div class="nameinput">
+        <input id="name" placeholder="First Name Only" maxlength="12" />
+        <button onclick="join()">Join</button>
+      </div>
+      <div class="colorsel">
+        Choose a color:
+        <div class="colorPicker">
+          <div
+            class="colorOption"
+            style="background: #ff6b6b"
+            onclick="setColor('#ff6b6b')"
+          ></div>
+          <div
+            class="colorOption"
+            style="background: #4ecdc4"
+            onclick="setColor('#4ecdc4')"
+          ></div>
+          <div
+            class="colorOption"
+            style="background: #ffe66d"
+            onclick="setColor('#ffe66d')"
+          ></div>
+          <div
+            class="colorOption"
+            style="background: #5dade2"
+            onclick="setColor('#5dade2')"
+          ></div>
+          <div
+            class="colorOption"
+            style="background: #af7ac5"
+            onclick="setColor('#af7ac5')"
+          ></div>
+          <div
+            class="colorOption"
+            style="background: #58d68d"
+            onclick="setColor('#58d68d')"
+          ></div>
+          <div
+            class="colorOption"
+            style="background: #f5b041"
+            onclick="setColor('#f5b041')"
+          ></div>
+          <div
+            class="colorOption"
+            style="background: #ec7063"
+            onclick="setColor('#ec7063')"
+          ></div>
+          <div
+            class="colorOption"
+            style="background: #48c9b0"
+            onclick="setColor('#48c9b0')"
+          ></div>
+          <div
+            class="colorOption"
+            style="background: #85c1e9"
+            onclick="setColor('#85c1e9')"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let selectedColor = null;
+
+      function setColor(color) {
+        selectedColor = color;
+
+        document.querySelectorAll(".colorOption").forEach((c) => {
+          c.style.border = "3px solid transparent";
+        });
+
+        event.target.style.border = "3px solid white";
+      }
+
+      function join() {
+        let name = document.getElementById("name").value.trim();
+
+        if (name.length === 0) {
+          alert("Please enter a valid name.");
+          return;
+        }
+
+        if (!selectedColor) {
+          alert("Please select a color.");
+          return;
+        }
+
+        // take only first word
+        name = name.split(" ")[0];
+
+        // format name -> First letter capital, rest small
+        name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+
+        localStorage.setItem("chatName", name);
+        localStorage.setItem("chatColor", selectedColor);
+
+        window.location.href = "chat.html";
+      }
+    </script>
+  </body>
+</html>
