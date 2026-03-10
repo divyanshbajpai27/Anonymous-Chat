@@ -331,25 +331,28 @@
 
       const messaging = firebase.messaging();
 
-      messaging
-        .requestPermission()
-        .then(() => {
-          return messaging.getToken({
-            vapidKey:
-              "BBEiHpBVosZfV5-hzq5-qgw05GtvkeekPEDO_Pa0cp1wKg-ExE5Id6TYrgLJiJiSO3qMOYkm7L_am6sNpIGM",
-          });
-        })
-        .then((token) => {
-          firebase.database().ref("pushTokens").push({
-            name: name,
-            token: token,
-          });
+      Notification.requestPermission().then(function (permission) {
+        if (permission === "granted") {
+          messaging
+            .getToken({
+              vapidKey:
+                "BBEiHpBVosZfV5-hzq5-qgw05GtvkeekPEDO_Pa0cp1wKg-ExE5Id6TYrgLJiJiSO3qMOYkm7L_am6sNpIGM",
+            })
+            .then(function (token) {
+              if (token) {
+                firebase.database().ref("pushTokens").push({
+                  name: name,
+                  token: token,
+                });
 
-          console.log("Push token:", token);
-        })
-        .catch((err) => {
-          console.log("Notification permission denied", err);
-        });
+                console.log("Push token:", token);
+              }
+            })
+            .catch(function (err) {
+              console.log("Token error:", err);
+            });
+        }
+      });
     </script>
   </body>
 </html>

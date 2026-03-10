@@ -18,7 +18,7 @@ messaging.setBackgroundMessageHandler(function (payload) {
 
   const options = {
     body: payload.notification.body,
-    icon: "icon.png",
+    icon: "/icon.png",
   };
 
   return self.registration.showNotification(title, options);
