@@ -331,28 +331,37 @@
 
       const messaging = firebase.messaging();
 
-      Notification.requestPermission().then(function (permission) {
-        if (permission === "granted") {
-          messaging
-            .getToken({
-              vapidKey:
-                "BBEiHpBVosZfV5-hzq5-qgw05GtvkeekPEDO_Pa0cp1wKg-ExE5Id6TYrgLJiJiSO3qMOYkm7L_am6sNpIGM",
-            })
-            .then(function (token) {
-              if (token) {
-                firebase.database().ref("pushTokens").push({
-                  name: name,
-                  token: token,
-                });
+      navigator.serviceWorker
+        .register("/firebase-messaging-sw.js")
+        .then(function (registration) {
+          console.log("Service Worker registered");
 
-                console.log("Push token:", token);
-              }
-            })
-            .catch(function (err) {
-              console.log("Token error:", err);
-            });
-        }
-      });
+          Notification.requestPermission().then(function (permission) {
+            if (permission === "granted") {
+              messaging
+                .getToken({
+                  vapidKey:
+                    "BBEiHpBVosZfV5-hzq5-qgw05GtvkeekPEDO_Pa0cp1wKg-ExE5Id6TYrgLJiJiSO3qMOYkm7L_am6sNpIGM",
+                  serviceWorkerRegistration: registration,
+                })
+                .then(function (token) {
+                  if (token) {
+                    firebase
+                      .database()
+                      .ref("pushTokens/" + name)
+                      .set({
+                        token: token,
+                      });
+
+                    console.log("Push token:", token);
+                  }
+                })
+                .catch(function (err) {
+                  console.log("Token error:", err);
+                });
+            }
+          });
+        });
     </script>
   </body>
 </html>

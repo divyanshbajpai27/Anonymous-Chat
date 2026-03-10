@@ -23,10 +23,15 @@ exports.sendMessageNotification = onValueCreated(
     const tokensSnap = await admin.database().ref("pushTokens").once("value");
 
     const tokens = [];
-    tokensSnap.forEach((child) => {
-      tokens.push(child.val().token);
-    });
 
+    tokensSnap.forEach((child) => {
+      const data = child.val();
+
+      if (data.name !== msg.name) {
+        tokens.push(data.token);
+      }
+    });
+    
     if (tokens.length === 0) return;
 
     await admin.messaging().sendToDevice(tokens, payload);
